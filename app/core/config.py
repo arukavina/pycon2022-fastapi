@@ -1,27 +1,30 @@
 from pathlib import Path
-from pydantic import BaseModel, BaseSettings, Field
 from typing import Optional
+
+from pydantic import BaseModel, BaseSettings, Field
+
 
 APP_ROOT = Path(__file__).parent.parent
 
-
 class AppSettings(BaseModel):
-    """
-    Configuration settings specific to FastAPI
-    Will be accessed qs  'more_settings' within app
-    """
+    """FastAPI specific configuration."""
+    title: str = "Goodbye, Hello World!"
+    description: str = "Hello, Functional FastAPI Web App"
+    version: str = "0.0.7"
+    docs_url: str = "/docs"
 
 
 class GlobalSettings(BaseSettings):
-    """
-    Inherits 'BaseSettings' from pydantic
-    """
+    """Global settings."""
+
+    more_settings: AppSettings = AppSettings()
+    
     APP_DIR: Path = APP_ROOT
+
     ENV_STATE: Optional[str] = Field(None, env="ENV_STATE")
 
     MONGO_SCHEME: Optional[str] = None
     MONGO_HOST: Optional[str] = None
-    MONGO_PORT: Optional[str] = None
     MONGO_USER: Optional[str] = None
     MONGO_PASSWORD: Optional[str] = None
     MONGO_DB: Optional[str] = None
@@ -33,29 +36,23 @@ class GlobalSettings(BaseSettings):
 
 
 class DevSettings(GlobalSettings):
-    """
-    Dev Environment
-    """
-
+    """Development specific settings."""
+    
     class Config:
-        env_prefix: str = "DEV_"
+        env_prefix = "DEV_"
 
 
 class ProdSettings(GlobalSettings):
-    """
-    Prod Environment
-    """
-
+    """Production specific settings."""
+    
     class Config:
-        env_prefix: str = "PRD_"
+        env_prefix = "PRD_"
 
 
 class FactorySettings:
-    """Callable class that loads Dev or Prod settings
-    based on `ENV_STATE` defined in .env file.
-    """
-
-    def __init__(self, env_state: Optional[str]):
+    """Callable class that loads Dev or Prod settings."""
+    
+    def __init__(self, env_state: Optional[str] = None):
         self.env_state = env_state
 
     def __call__(self):
@@ -64,6 +61,6 @@ class FactorySettings:
         elif self.env_state == "prd":
             return ProdSettings()
         else:
-            raise ValueError(
-                f"Invalid ENV_STATE: {self.env_state}"
-            )
+            raise ValueError(f"Invalid env_state: {self.env_state}")
+
+settings = FactorySettings(GlobalSettings().ENV_STATE)()
